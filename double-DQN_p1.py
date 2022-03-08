@@ -1,8 +1,8 @@
 """
 希望跟进的功能：
-1. 在tensorbord上增加loss显示
-2. 在tensorbord上增加test显示
--. 自动加载模型
+1. 在tensorbord上增加loss显示  完成
+2. 在tensorbord上增加test显示  完成
+-. 自动加载模型                完成
 3. 让gym返回成功或失败，向tensorbord加入成功率和坠毁率
 . gym 中，成功了把车变绿色，失败变为红色
 4. 变epsilon
@@ -31,7 +31,7 @@ parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--eps', type=float, default=0.05)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
-parser.add_argument('--test_episodes', type=int, default=100)
+parser.add_argument('--test_episodes', type=int, default=20)
 parser.add_argument('--update_episodes', type=int, default=10)
 parser.add_argument('--run_target', type=str, default='DDQN-p1-test')
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
@@ -39,7 +39,7 @@ args = parser.parse_args()
 
 ALG_NAME = 'DQN'
 # ENV_ID = 'CartPole-v0'
-ENV_ID = 'LunarLander-v2'
+ENV_ID = 'LunarLander_SC-v2'
 
 HP_UPDATE_EPISODE= hp.HParam('update_episode', hp.Discrete([2, 10, 15]))
 
@@ -160,7 +160,7 @@ class Agent:
             state = self.env.reset().astype(np.float32)
             total_reward, done = 0, False
             while not done:
-                # self.env.render()
+                self.env.render()
                 action = self.model(np.array([state], dtype=np.float32))[0]
                 action = np.argmax(action)
                 next_state, reward, done, _ = self.env.step(action)
@@ -168,6 +168,7 @@ class Agent:
 
                 total_reward += reward
                 state = next_state
+            self.env.render()
             # 每测试完一次，记录一次
             with self.reward_summary_writer.as_default():
                 tf.summary.scalar('test-reward', total_reward, step=episode)
