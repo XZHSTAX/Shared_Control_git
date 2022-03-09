@@ -42,6 +42,9 @@ SIDE_ENGINE_AWAY = 12.0
 VIEWPORT_W = 600
 VIEWPORT_H = 400
 
+LANDED_SLACK = 50
+GROUND_SLACK = 0.01
+MAX_NUM_STEPS = 1000
 
 class ContactDetector(contactListener):
     def __init__(self, env):
@@ -162,6 +165,10 @@ class LunarLander_SC(gym.Env, EzPickle):
             -np.inf, np.inf, shape=(8,), dtype=np.float32
         )
 
+        self.at_site = None
+        self.grounded = None
+        self.curr_step = None
+
         if self.continuous:
             # Action is two floats [main engine, left-right engines].
             # Main engine: -1..0 off, 0..+1 throttle from 50% to 100% power. Engine can't work with less than 50% power.
@@ -196,6 +203,10 @@ class LunarLander_SC(gym.Env, EzPickle):
         self.world.contactListener = self.world.contactListener_keepref
         self.game_over = False
         self.prev_shaping = None
+
+        self.at_site = [False for _ in range(LANDED_SLACK)]
+        self.grounded = [False for _ in range(LANDED_SLACK)]
+        self.curr_step = 0
 
         W = VIEWPORT_W / SCALE
         H = VIEWPORT_H / SCALE
@@ -418,16 +429,17 @@ class LunarLander_SC(gym.Env, EzPickle):
             1.0 if self.legs[1].ground_contact else 0.0,
         ]
         assert len(state) == 8
-
+        self.curr_step +=1
         reward = 0
-        shaping = (
-            -100 * np.sqrt(state[0] * state[0] + state[1] * state[1])
-            - 100 * np.sqrt(state[2] * state[2] + state[3] * state[3])
-            - 100 * abs(state[4])
-            + 10 * state[6]
-            + 10 * state[7]
-        )  # And ten points for legs contact, the idea is if you
+        # shaping = (
+        #     -100 * np.sqrt(state[0] * state[0] + state[1] * state[1])
+        #     - 100 * np.sqrt(state[2] * state[2] + state[3] * state[3])
+        #     - 100 * abs(state[4])
+        #     + 10 * state[6]
+        #     + 10 * state[7]
+        # )  # And ten points for legs contact, the idea is if you
         # lose contact again after landing, you get negative reward
+        shaping = 0
         if self.prev_shaping is not None:
             reward = shaping - self.prev_shaping
         self.prev_shaping = shaping
@@ -437,15 +449,29 @@ class LunarLander_SC(gym.Env, EzPickle):
         )  # less fuel spent is better, about -30 for heuristic landing
         reward -= s_power * 0.03
 
-        done = False
-        if self.game_over or abs(state[0]) >= 1.0:
-            done = True
-            reward = -100
-            self.lander.color1 = (255,0,0)
-        if not self.lander.awake:
-            done = True
-            reward = +100
-            self.lander.color1 = (0,255,0)
+        self.at_site[:-1] = self.at_site[1:]
+        self.at_site[-1] = pos.x >= self.helipad_x1 and pos.x <= self.helipad_x2 and state[1] <= GROUND_SLACK
+        self.grounded[:-1] = self.grounded[1:]
+        self.grounded[-1] = self.legs[0].ground_contact and self.legs[1].ground_contact
+        landed = all(self.at_site) and any(self.grounded)       
+
+        oob = abs(state[0]) >= 1.0
+        not_awake = not self.lander.awake
+        timeout = self.curr_step >= MAX_NUM_STEPS
+
+        done = self.game_over or oob or not_awake or timeout or landed
+        if done:
+            if self.game_over or oob:
+                reward = -100
+                self.lander.color1 = (255,0,0)
+            elif self.at_site[-1]:
+                reward = +150
+                self.lander.color1 = (0,255,0)
+            elif not_awake:
+                reward = +50
+                self.lander.color1 = (0,0,255)
+            elif timeout:
+                self.lander.color1 = (255,0,0)
         return np.array(state, dtype=np.float32), reward, done, {}
 
     def render(self, mode="human"):

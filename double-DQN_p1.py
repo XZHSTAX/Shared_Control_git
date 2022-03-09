@@ -20,6 +20,7 @@ import gym
 import tensorflow as tf
 import tensorlayer as tl
 import datetime
+import time
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 parser = argparse.ArgumentParser()
 parser.add_argument('--train', dest='train', default=False)
@@ -31,9 +32,9 @@ parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--eps', type=float, default=0.05)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
-parser.add_argument('--test_episodes', type=int, default=20)
+parser.add_argument('--test_episodes', type=int, default=100)
 parser.add_argument('--update_episodes', type=int, default=10)
-parser.add_argument('--run_target', type=str, default='DDQN-p1-test')
+parser.add_argument('--run_target', type=str, default='test-origin-model')
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
 args = parser.parse_args()
 
@@ -84,13 +85,14 @@ class Agent:
         self.action_dim = self.env.action_space.n
 
         self.current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.train_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target+ '/train'
-        self.reward_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/reward'
-        self.test_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/test'
-        
-        self.train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
-        self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
-        self.test_summary_writer = tf.summary.create_file_writer(self.test_log_dir)
+        if args.test:
+            self.test_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/test'
+            self.test_summary_writer = tf.summary.create_file_writer(self.test_log_dir)
+        if args.train:
+            self.train_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target+ '/train'
+            self.train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
+            self.reward_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/reward'
+            self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
         
         self.save_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
 
@@ -169,8 +171,9 @@ class Agent:
                 total_reward += reward
                 state = next_state
             self.env.render()
+            time.sleep(0.3)
             # 每测试完一次，记录一次
-            with self.reward_summary_writer.as_default():
+            with self.test_summary_writer.as_default():
                 tf.summary.scalar('test-reward', total_reward, step=episode)
             print("Test {} | episode rewards is {}".format(episode, total_reward))
 

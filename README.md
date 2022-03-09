@@ -34,3 +34,23 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 # 问题
 
 现在不降落在旗帜里面也会得分。
+
+# 开发日志
+
+`20220307-220108_DDQN-p1-test`是训练好的DDQN，测试结果
+
+2022.3.9 14：47
+
+已经完成对gym环境的初步改造，完成了随机降落位置，完成后变色，修改回报（使用发动机扣分，船体撞击-100，降落到指定位置+150，只是平稳降落+50）
+
+并且对其进行了测试：
+
+1. 使用原始Double-DQN测试，测试结果在`logs\gradient_tape\20220309-145936_test-origin-model`中
+
+2. 以原始Double-DQN为预训练模型，训练1000次后；进行测试；结果记录在`logs\gradient_tape\new_GymEnv_test_log_no_statueback`和`logs\gradient_tape\new_GymEnv_train_log_no_statueback`.
+
+下一步继续改造gym，返回是否坠毁，返回旗帜位置。
+
+需要进行的测试如下：
+
+在可以得到旗帜位置情况下进行训练，并且测试效果。
