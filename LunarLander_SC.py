@@ -45,6 +45,7 @@ VIEWPORT_H = 400
 LANDED_SLACK = 50
 GROUND_SLACK = 0.01
 MAX_NUM_STEPS = 1000
+N_OBS_DIM = 9
 
 class ContactDetector(contactListener):
     def __init__(self, env):
@@ -162,7 +163,7 @@ class LunarLander_SC(gym.Env, EzPickle):
 
         # useful range is -1 .. +1, but spikes can be higher
         self.observation_space = spaces.Box(
-            -np.inf, np.inf, shape=(8,), dtype=np.float32
+            -np.inf, np.inf, shape=(N_OBS_DIM,), dtype=np.float32
         )
 
         self.at_site = None
@@ -418,6 +419,7 @@ class LunarLander_SC(gym.Env, EzPickle):
 
         pos = self.lander.position
         vel = self.lander.linearVelocity
+        helipad_x = (self.helipad_x1 + self.helipad_x2) / 2
         state = [
             (pos.x - VIEWPORT_W / SCALE / 2) / (VIEWPORT_W / SCALE / 2),
             (pos.y - (self.helipad_y + LEG_DOWN / SCALE)) / (VIEWPORT_H / SCALE / 2),
@@ -427,8 +429,9 @@ class LunarLander_SC(gym.Env, EzPickle):
             20.0 * self.lander.angularVelocity / FPS,
             1.0 if self.legs[0].ground_contact else 0.0,
             1.0 if self.legs[1].ground_contact else 0.0,
+            (helipad_x - VIEWPORT_W/SCALE/2) / (VIEWPORT_W/SCALE/2)
         ]
-        assert len(state) == 8
+        assert len(state) == N_OBS_DIM
         self.curr_step +=1
         reward = 0
         # shaping = (
@@ -460,19 +463,29 @@ class LunarLander_SC(gym.Env, EzPickle):
         timeout = self.curr_step >= MAX_NUM_STEPS
 
         done = self.game_over or oob or not_awake or timeout or landed
+        info = {}
         if done:
             if self.game_over or oob:
                 reward = -100
                 self.lander.color1 = (255,0,0)
+                info['crash'] = 1
+                info['success'] = 0
             elif self.at_site[-1]:
                 reward = +150
                 self.lander.color1 = (0,255,0)
+                info['crash'] = 0
+                info['success'] = 1                
             elif not_awake:
                 reward = +50
                 self.lander.color1 = (0,0,255)
+                info['crash'] = 0
+                info['success'] = 0
             elif timeout:
                 self.lander.color1 = (255,0,0)
-        return np.array(state, dtype=np.float32), reward, done, {}
+                info['crash'] = 0
+                info['success'] = 0
+        
+        return np.array(state, dtype=np.float32), reward, done, info
 
     def render(self, mode="human"):
         if self.screen is None:

@@ -54,3 +54,9 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 需要进行的测试如下：
 
 在可以得到旗帜位置情况下进行训练，并且测试效果。
+
+2022.3.9 21：23
+
+现在会返回旗帜位置，返回是否坠毁；并且用新的网络进行了训练，但效果不佳，训练过程在`logs\gradient_tape\20220309-183053_9in-mode-train`，测试结果在`20220309-214020_9in-mode-test100`
+
+猜测是因为把shape的得分关闭，导致了飞行器在运行过程中过于不稳，计划把shape重新加入再测试。
