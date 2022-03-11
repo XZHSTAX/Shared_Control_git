@@ -169,7 +169,7 @@ class LunarLander_SC(gym.Env, EzPickle):
         self.at_site = None
         self.grounded = None
         self.curr_step = None
-
+        self.using_lander_reward_shaping = True
         if self.continuous:
             # Action is two floats [main engine, left-right engines].
             # Main engine: -1..0 off, 0..+1 throttle from 50% to 100% power. Engine can't work with less than 50% power.
@@ -434,6 +434,15 @@ class LunarLander_SC(gym.Env, EzPickle):
         assert len(state) == N_OBS_DIM
         self.curr_step +=1
         reward = 0
+
+        dx = (pos.x - helipad_x) / (VIEWPORT_W/SCALE/2)
+        shaping = - 100*np.sqrt(state[2]*state[2] + state[3]*state[3]) - 100*abs(state[4])
+        if self.using_lander_reward_shaping:
+            shaping += -100*np.sqrt(dx*dx + state[1]*state[1]) + 10*state[6] + 10*state[7]
+        if self.prev_shaping is not None:
+            reward = shaping - self.prev_shaping
+        self.prev_shaping = shaping
+
         # shaping = (
         #     -100 * np.sqrt(state[0] * state[0] + state[1] * state[1])
         #     - 100 * np.sqrt(state[2] * state[2] + state[3] * state[3])
@@ -441,11 +450,11 @@ class LunarLander_SC(gym.Env, EzPickle):
         #     + 10 * state[6]
         #     + 10 * state[7]
         # )  # And ten points for legs contact, the idea is if you
-        # lose contact again after landing, you get negative reward
-        shaping = 0
-        if self.prev_shaping is not None:
-            reward = shaping - self.prev_shaping
-        self.prev_shaping = shaping
+        # # lose contact again after landing, you get negative reward
+        # # shaping = 0
+        # if self.prev_shaping is not None:
+        #     reward = shaping - self.prev_shaping
+        # self.prev_shaping = shaping
 
         reward -= (
             m_power * 0.30
@@ -571,6 +580,9 @@ class LunarLander_SC(gym.Env, EzPickle):
                     )
 
         self.surf = pygame.transform.flip(self.surf, False, True)
+        clock_prog = (MAX_NUM_STEPS-self.curr_step) / MAX_NUM_STEPS
+        pygame.draw.line(self.surf, color=(255,0,0),start_pos=(0, VIEWPORT_H), end_pos=(clock_prog*VIEWPORT_W, VIEWPORT_H), width=5  )
+
         self.screen.blit(self.surf, (0, 0))
 
         if mode == "human":

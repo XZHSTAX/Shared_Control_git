@@ -20,10 +20,10 @@ parser.add_argument('--lr', type=float, default=0.00075)
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--eps', type=float, default=0.05)
 
-parser.add_argument('--train_episodes', type=int, default=2500)
+parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 parser.add_argument('--update_episodes', type=int, default=10)
-parser.add_argument('--run_target', type=str, default='9in-mode-test')
+parser.add_argument('--run_target', type=str, default='9in-mode-train-newshaping')
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
 args = parser.parse_args()
 
@@ -84,7 +84,8 @@ class Agent:
             self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
         
         self.save_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID,args.run_target]))
-
+        self.load_model_path = 'model/DQN_LunarLander_SC-v2_9in-mode-train-newshaping'
+        
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
             layer_1 = tl.layers.Dense(n_units=256, act=tf.nn.relu)(input_layer)
@@ -97,7 +98,8 @@ class Agent:
         self.target_model = create_model([None, self.state_dim])
         self.model.train()
         self.target_model.eval()
-        if os.path.exists(self.save_model_path) and args.continue_train==1:
+        
+        if os.path.exists(self.load_model_path) and args.continue_train==1:
             self.loadModel()
 
         self.model_optim = self.target_model_optim = tf.optimizers.Adam(lr=args.lr)
@@ -196,11 +198,12 @@ class Agent:
                 print('EP:{} | R:{}'.format(episode, total_reward))
                 with self.reward_summary_writer.as_default():
                     tf.summary.scalar('reward', total_reward, step=episode)
-
-                with self.train_summary_writer.as_default():
-                    tf.summary.scalar('loss', loss, step=episode)
-                # if episode % 10 == 0:
-                #     self.test_episode()
+                
+                if len(self.buffer.buffer) > args.batch_size:
+                    with self.train_summary_writer.as_default():
+                        tf.summary.scalar('loss', loss, step=episode)
+                if episode % 100 == 0 and episode != 0:
+                    self.saveModel()
             self.saveModel()
         if args.test:
             self.loadModel()
@@ -214,10 +217,10 @@ class Agent:
         print('Saved weights.')
 
     def loadModel(self):
-        if os.path.exists(self.save_model_path):
+        if os.path.exists(self.load_model_path):
             print('Load DQN Network parametets ...')
-            tl.files.load_hdf5_to_weights_in_order(os.path.join(self.save_model_path, 'model.hdf5'), self.model)
-            tl.files.load_hdf5_to_weights_in_order(os.path.join(self.save_model_path, 'target_model.hdf5'), self.target_model)
+            tl.files.load_hdf5_to_weights_in_order(os.path.join(self.load_model_path, 'model.hdf5'), self.model)
+            tl.files.load_hdf5_to_weights_in_order(os.path.join(self.load_model_path, 'target_model.hdf5'), self.target_model)
             print('Load weights!')
         else: print("No model file find, please train model first...")
 
