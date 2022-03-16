@@ -32,7 +32,7 @@ parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--eps', type=float, default=0.05)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
-parser.add_argument('--test_episodes', type=int, default=100)
+parser.add_argument('--test_episodes', type=int, default=10)
 parser.add_argument('--update_episodes', type=int, default=10)
 parser.add_argument('--run_target', type=str, default='test-origin-model')
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
@@ -40,7 +40,7 @@ args = parser.parse_args()
 
 ALG_NAME = 'DQN'
 # ENV_ID = 'CartPole-v0'
-ENV_ID = 'LunarLander_SC-v2'
+ENV_ID = 'LunarLander-v2'
 
 HP_UPDATE_EPISODE= hp.HParam('update_episode', hp.Discrete([2, 10, 15]))
 

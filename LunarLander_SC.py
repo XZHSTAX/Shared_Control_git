@@ -46,7 +46,7 @@ LANDED_SLACK = 50
 GROUND_SLACK = 0.01
 MAX_NUM_STEPS = 1000
 N_OBS_DIM = 9
-
+human_action = 0
 class ContactDetector(contactListener):
     def __init__(self, env):
         contactListener.__init__(self)
@@ -497,6 +497,7 @@ class LunarLander_SC(gym.Env, EzPickle):
         return np.array(state, dtype=np.float32), reward, done, info
 
     def render(self, mode="human"):
+        global human_action
         if self.screen is None:
             pygame.init()
             self.screen = pygame.display.set_mode((VIEWPORT_W, VIEWPORT_H))
@@ -585,6 +586,32 @@ class LunarLander_SC(gym.Env, EzPickle):
 
         self.screen.blit(self.surf, (0, 0))
 
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                print("key_down")
+                if event.key == pygame.K_UP:
+                    human_action = 2
+                    print("up")
+                elif event.key == pygame.K_DOWN:
+                    human_action = 0
+                    print("down")
+                elif event.key == pygame.K_LEFT:
+                    human_action = 3
+                    print("left")
+                elif event.key == pygame.K_RIGHT:
+                    human_action = 1
+                    print("right")
+            elif event.type==pygame.KEYUP:
+                if event.key == pygame.K_UP and human_action == 2:
+                    human_action = 0
+                elif event.key == pygame.K_DOWN and human_action == 0:
+                    human_action = 0
+                elif event.key == pygame.K_LEFT and human_action == 3:
+                    human_action = 0
+                elif event.key == pygame.K_RIGHT and human_action == 1:
+                    human_action = 0
+
+
         if mode == "human":
             pygame.display.flip()
 
@@ -593,7 +620,7 @@ class LunarLander_SC(gym.Env, EzPickle):
                 np.array(pygame.surfarray.pixels3d(self.surf)), axes=(1, 0, 2)
             )
         else:
-            return self.isopen
+            return self.isopen,human_action
 
     def close(self):
         if self.screen is not None:

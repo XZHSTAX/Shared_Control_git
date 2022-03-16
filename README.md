@@ -91,3 +91,10 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 
 无法训练成功的问题可以以后再纠，现在必须进行下一步了。
 
+---
+
+
+
+2022.3.16
+
+今天修改了Gym环境，加入了可以进行人的控制；但游戏速度过快，只能通过`sleep`模块来减慢速度。下面要加入开关，可以选择性的使用人类输入。具体使用示例为`show_test.py`
