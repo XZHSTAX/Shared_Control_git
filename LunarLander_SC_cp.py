@@ -47,6 +47,7 @@ GROUND_SLACK = 0.01
 MAX_NUM_STEPS = 1000
 N_OBS_DIM = 9
 human_action = 0
+last_human_action = 666
 class ContactDetector(contactListener):
     def __init__(self, env):
         contactListener.__init__(self)
@@ -212,7 +213,9 @@ class LunarLander_SC(gym.Env, EzPickle):
         W = VIEWPORT_W / SCALE
         H = VIEWPORT_H / SCALE
         global human_action
+        global last_human_action
         human_action = 0
+        last_human_action = 0
         # terrain
         CHUNKS = 11
         height = self.np_random.uniform(0, H / 2, size=(CHUNKS + 1,))
@@ -590,6 +593,7 @@ class LunarLander_SC(gym.Env, EzPickle):
 
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
+                last_human_action = human_action
                 if event.key == pygame.K_UP:
                     human_action = 2
                 elif event.key == pygame.K_DOWN:
@@ -601,13 +605,25 @@ class LunarLander_SC(gym.Env, EzPickle):
       
             elif event.type==pygame.KEYUP:
                 if event.key == pygame.K_UP and human_action == 2:
-                    human_action = 0
+                    if human_action != last_human_action:
+                        human_action = last_human_action
+                    else:
+                        human_action = 0
                 elif event.key == pygame.K_DOWN and human_action == 0:
-                    human_action = 0
+                    if human_action != last_human_action:
+                        human_action = last_human_action
+                    else:
+                        human_action = 0
                 elif event.key == pygame.K_LEFT and human_action == 3:
-                    human_action = 0
+                    if human_action != last_human_action:
+                        human_action = last_human_action
+                    else:
+                        human_action = 0
                 elif event.key == pygame.K_RIGHT and human_action == 1:
-                    human_action = 0
+                    if human_action != last_human_action:
+                        human_action = last_human_action
+                    else:
+                        human_action = 0
 
 
         if mode == "human":

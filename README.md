@@ -10,7 +10,7 @@
 
 `LunarLander_SC.py`是修改了Gym中原有的环境。为了使用，需要
 
-1. 在`envs\py_new2\Lib\site-packages\gym\__init__.py`中加入如下代码：
+1. 在`gym\envs\__init__.py`中加入如下代码：
 
 ```python
 register(
@@ -98,3 +98,36 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 2022.3.16
 
 今天修改了Gym环境，加入了可以进行人的控制；但游戏速度过快，只能通过`sleep`模块来减慢速度。下面要加入开关，可以选择性的使用人类输入。具体使用示例为`show_test.py`
+
+---
+
+
+
+2022.3.17
+
+十分糟糕，新的Gym环境不知道为什么，月球车的速度非常快。使用`sleep`方法拖慢，也只是拖慢了画面，画面内的车的实际速度没有变，所以使得驾驶变的非常难。因此决定使用旧的环境。
+
+也许可以直接使用作者提供的lunalander代码，但有必要重新训练。
+
+首先还是注册为`LunarLander_SC.py`，然后使用原先的8输入doubleDQN进行测试。
+
+21:57
+
+已经完成了对人机交互的改造，代码在`Shared_Control.py`。但实际上，运行效果并不好。我玩的时候坠毁率很高，成功率很低。可能的原因如下：
+
+1. agent 的训练不够，不能适应当前我的操作。
+2. 人机交互时的动作选择策略有误。
+
+预想的解决方案如下：
+
+1. 对于agent训练的问题：
+
+- 可以使用作者的环境进行训练，分为开启和不开启`shaping`。使用8输入。单纯训练。
+- 锁住降落位置进行训练，分开启和关闭`shaping`,单纯训练。
+- 9输入训练，分为开启和不开启`shaping`
+- 加入copilot进行训练，这个copilot只会输入左右，为关于停机坪位置的信息。8输入训练，使用人机交互动作选择
+- 同上，但9输入训练；第9个维度分为上面的copilot输入或仅仅停机坪位置信息；在交互实验中，用人的输入代替第9个维度。
+- 看作者的视频里，飞行器非常的稳；可以尝试取消发动机减少reward的设定。
+
+`double-DQN_main.py` 是为现在主任务写的DDQN;`LunarLander_SC_cp.py`为增强控制手感的gym环境;`LunarLander_SC_mine.py`为现在正在用的gym环境，是在作者基础上小改的。`play_it_yourself.py`为自己玩。`Shared_Control.py`专门用于人机交互测试py文件。
+
