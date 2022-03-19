@@ -16,8 +16,8 @@ import datetime
 import time
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 parser = argparse.ArgumentParser()
-parser.add_argument('--train', dest='train', default=False)
-parser.add_argument('--test', dest='test', default=True)
+parser.add_argument('--train', dest='train', default=True)
+parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--lr', type=float, default=0.00075)
@@ -27,7 +27,7 @@ parser.add_argument('--eps', type=float, default=0.05)
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 parser.add_argument('--update_episodes', type=int, default=10)
-parser.add_argument('--run_target', type=str, default='作者环境正式测试100次2')
+parser.add_argument('--run_target', type=str, default='作者环境训练，小改,9输入，use-shaping') # 会影响log文件的命名，保存模型位置
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
 parser.add_argument('--test_render', type=int, default=1)
 args = parser.parse_args()
@@ -75,7 +75,7 @@ class ReplayBuffer:
 class Agent:
     def __init__(self, env):
         self.env = env
-        self.state_dim = self.env.observation_space.shape[0]-1
+        self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.n
 
         self.current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -88,9 +88,9 @@ class Agent:
             self.reward_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/reward'
             self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
         
-        self.save_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-        self.load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-
+        self.save_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID,args.run_target]))
+        # self.load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
+        self.load_model_path = ''  
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
             layer_1 = tl.layers.Dense(n_units=256, act=tf.nn.relu)(input_layer)
@@ -157,14 +157,14 @@ class Agent:
         crash_times = 0
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
-            state = state[:8]
+            # state = state[:8]
             total_reward, done = 0, False
             while not done:
                 if args.test_render: self.env.render()             
                 action = self.model(np.array([state], dtype=np.float32))[0]
                 action = np.argmax(action)
                 next_state, reward, done, info = self.env.step(action)
-                next_state = next_state[:8]
+                # next_state = next_state[:8]
                 next_state = next_state.astype(np.float32)
 
                 total_reward += reward
@@ -189,9 +189,11 @@ class Agent:
             for episode in range(train_episodes):
                 total_reward, done = 0, False
                 state = self.env.reset().astype(np.float32)
+                # state = state[:8]
                 while not done:
                     action = self.choose_action(state)
                     next_state, reward, done, _ = self.env.step(action)
+                    # next_state = next_state[:8]
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
                     total_reward += reward
@@ -206,11 +208,11 @@ class Agent:
                 print('EP:{} | R:{}'.format(episode, total_reward))
                 with self.reward_summary_writer.as_default():
                     tf.summary.scalar('reward', total_reward, step=episode)
-
-                with self.train_summary_writer.as_default():
-                    tf.summary.scalar('loss', loss, step=episode)
-                # if episode % 10 == 0:
-                #     self.test_episode()
+                if len(self.buffer.buffer) > args.batch_size:
+                    with self.train_summary_writer.as_default():
+                        tf.summary.scalar('loss', loss, step=episode)
+                if episode % 100 == 0 and episode != 0:
+                    self.saveModel()
             self.saveModel()
         if args.test:
             self.loadModel()

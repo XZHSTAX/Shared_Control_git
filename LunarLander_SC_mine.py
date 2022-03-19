@@ -110,7 +110,7 @@ class LunarLander_SC(gym.Env):
             # Nop, fire left engine, main engine, right engine
             self.action_space = spaces.Discrete(4)
 
-        self.using_lander_reward_shaping = False
+        self.using_lander_reward_shaping = True
 
         self.init_state = None
         self.trajectory = None
