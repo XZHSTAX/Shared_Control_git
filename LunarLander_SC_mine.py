@@ -310,6 +310,12 @@ class LunarLander_SC(gym.Env):
         pos = self.lander.position
         vel = self.lander.linearVelocity
         helipad_x = (self.helipad_x1 + self.helipad_x2) / 2
+        if pos.x <self.helipad_x1:
+            coaction = 3
+        elif pos.x >self.helipad_x2:
+            coaction = 1
+        else:
+            coaction = 0
         state = [
             (pos.x - VIEWPORT_W/SCALE/2) / (VIEWPORT_W/SCALE/2),
             (pos.y - (self.helipad_y+LEG_DOWN/SCALE)) / (VIEWPORT_W/SCALE/2),
@@ -319,7 +325,9 @@ class LunarLander_SC(gym.Env):
             20.0*self.lander.angularVelocity/FPS,
             1.0 if self.legs[0].ground_contact else 0.0,
             1.0 if self.legs[1].ground_contact else 0.0,
-            (helipad_x - VIEWPORT_W/SCALE/2) / (VIEWPORT_W/SCALE/2)
+            # (helipad_x - VIEWPORT_W/SCALE/2) / (VIEWPORT_W/SCALE/2)
+            # 3 if pos.x>self.helipad_x1 and pos.x<self.helipad_x1 else 0
+            coaction
             ]
         assert len(state)==N_OBS_DIM
 

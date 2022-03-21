@@ -68,8 +68,8 @@ model = create_model([None, 8])
 model.eval()
 
 
-load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-
+# load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
+load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-right'
 if os.path.exists(load_model_path):
     print('Load DQN Network parametets ...')
     tl.files.load_hdf5_to_weights_in_order(os.path.join(load_model_path, 'model.hdf5'),model)
@@ -105,7 +105,7 @@ while 1:
 
     if human_input_flag == 0:        
         action = bot_action
-    if bot_action_Q[human_action] <= bot_action_Q[bot_action]*0.6:
+    if bot_action_Q[human_action] <= bot_action_Q[bot_action]*0.97:
         action = bot_action
     else:
         action = human_action

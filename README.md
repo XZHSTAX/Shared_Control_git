@@ -122,12 +122,20 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 
 1. 对于agent训练的问题：
 
-- 可以使用作者的环境进行训练，分为开启和不开启`shaping`。使用8输入。单纯训练。
+- 可以使用作者的环境进行训练，分为开启和不开启`shaping`。使用8输入。单纯训练。（*DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping*）
 - 锁住降落位置进行训练，分开启和关闭`shaping`,单纯训练。
-- 9输入训练，分为开启和不开启`shaping`
+- 9输入训练，分为开启和不开启`shaping`（*DQN_LunarLander_SC-v2_作者环境训练，小改,9输入，use-shaping*）
+- 9输入训练，第9维输入为飞行器相对旗帜的位置，分为开启和不开启`shaping`（*DQN_LunarLander_SC-v2_作者环境训练，小改,new 9-in,use-shaping*）
 - 加入copilot进行训练，这个copilot只会输入左右，为关于停机坪位置的信息。8输入训练，使用人机交互动作选择
 - 同上，但9输入训练；第9个维度分为上面的copilot输入或仅仅停机坪位置信息；在交互实验中，用人的输入代替第9个维度。
 - 看作者的视频里，飞行器非常的稳；可以尝试取消发动机减少reward的设定。
 
 `double-DQN_main.py` 是为现在主任务写的DDQN;`LunarLander_SC_cp.py`为增强控制手感的gym环境;`LunarLander_SC_mine.py`为现在正在用的gym环境，是在作者基础上小改的。`play_it_yourself.py`为自己玩。`Shared_Control.py`专门用于人机交互测试py文件。
 
+---
+
+
+
+3.21
+
+进行了几轮训练，之后需要继续训练。增加文件`double-DQN_main2.py`。此文件用于训练有copilot的agent。

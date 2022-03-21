@@ -24,10 +24,10 @@ parser.add_argument('--lr', type=float, default=0.00075)
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--eps', type=float, default=0.05)
 
-parser.add_argument('--train_episodes', type=int, default=500)
+parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 parser.add_argument('--update_episodes', type=int, default=10)
-parser.add_argument('--run_target', type=str, default='作者环境训练，小改,new 9-in,use-shaping2-test') # 会影响log文件的命名，保存模型位置
+parser.add_argument('--run_target', type=str, default='作者环境训练，小改,use-shaping-copilot-right-test') # 会影响log文件的命名，保存模型位置
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
 parser.add_argument('--test_render', type=int, default=1)
 args = parser.parse_args()
@@ -75,7 +75,7 @@ class ReplayBuffer:
 class Agent:
     def __init__(self, env):
         self.env = env
-        self.state_dim = self.env.observation_space.shape[0]
+        self.state_dim = self.env.observation_space.shape[0]-1
         self.action_dim = self.env.action_space.n
 
         self.current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -90,7 +90,7 @@ class Agent:
         
         self.save_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID,args.run_target]))
         # self.load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-        self.load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,new 9-in,use-shaping2'  
+        self.load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-right'  
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
             layer_1 = tl.layers.Dense(n_units=256, act=tf.nn.relu)(input_layer)
@@ -118,12 +118,21 @@ class Agent:
                 self.model.trainable_weights, self.target_model.trainable_weights):
             target_weights.assign(weights)
 
-    def choose_action(self, state):
-        if np.random.uniform() < self.epsilon:
+    def choose_action(self, state,copilot,epsilon_on = 1):
+        if np.random.uniform() < self.epsilon and epsilon_on==1:
             return np.random.choice(self.action_dim)
         else:
-            q_value = self.model(state[np.newaxis, :])[0]
-            return np.argmax(q_value)
+            if copilot==0:
+                q_value = self.model(state[np.newaxis, :])[0]
+                return np.argmax(q_value)
+            else:
+                q_value = self.model(state[np.newaxis, :])[0].numpy()
+                q_copilot = q_value[copilot]
+                q_max = np.max(q_value)
+                if q_copilot >= q_max*0.95:
+                    return copilot
+                else:
+                    return np.argmax(q_value)
 
     def replay(self):
         # for i in range(10):
@@ -157,14 +166,18 @@ class Agent:
         crash_times = 0
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
-            # state = state[:8]
+            copilot = int(state[8])
+            state = state[:8]
             total_reward, done = 0, False
             while not done:
                 if args.test_render: self.env.render()             
-                action = self.model(np.array([state], dtype=np.float32))[0]
-                action = np.argmax(action)
+                # action = self.model(np.array([state], dtype=np.float32))[0]
+                # action = np.argmax(action)
+                action = self.choose_action(state, copilot,epsilon_on = 0)
                 next_state, reward, done, info = self.env.step(action)
-                # next_state = next_state[:8]
+                
+                copilot = int(next_state[8])
+                next_state = next_state[:8]
                 next_state = next_state.astype(np.float32)
 
                 total_reward += reward
@@ -189,11 +202,13 @@ class Agent:
             for episode in range(train_episodes):
                 total_reward, done = 0, False
                 state = self.env.reset().astype(np.float32)
-                # state = state[:8]
+                copilot = int(state[8])
+                state = state[:8]
                 while not done:
-                    action = self.choose_action(state)
+                    action = self.choose_action(state,copilot)
                     next_state, reward, done, _ = self.env.step(action)
-                    # next_state = next_state[:8]
+                    copilot = int(next_state[8])
+                    next_state = next_state[:8]
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
                     total_reward += reward
