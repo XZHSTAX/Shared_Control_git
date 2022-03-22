@@ -27,7 +27,7 @@ parser.add_argument('--eps', type=float, default=0.05)
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 parser.add_argument('--update_episodes', type=int, default=10)
-parser.add_argument('--run_target', type=str, default='作者环境训练，小改,use-shaping-copilot-right-test') # 会影响log文件的命名，保存模型位置
+parser.add_argument('--run_target', type=str, default='作者环境训练，小改,use-shaping-copilot-no-FuelCost2-test') # 会影响log文件的命名，保存模型位置
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
 parser.add_argument('--test_render', type=int, default=1)
 args = parser.parse_args()
@@ -90,7 +90,7 @@ class Agent:
         
         self.save_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID,args.run_target]))
         # self.load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-        self.load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-right'  
+        self.load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost2'  
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
             layer_1 = tl.layers.Dense(n_units=256, act=tf.nn.relu)(input_layer)
@@ -129,7 +129,7 @@ class Agent:
                 q_value = self.model(state[np.newaxis, :])[0].numpy()
                 q_copilot = q_value[copilot]
                 q_max = np.max(q_value)
-                if q_copilot >= q_max*0.95:
+                if q_copilot >= q_max*0.975:
                     return copilot
                 else:
                     return np.argmax(q_value)

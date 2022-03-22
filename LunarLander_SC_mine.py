@@ -344,8 +344,8 @@ class LunarLander_SC(gym.Env):
             reward = shaping - self.prev_shaping
         self.prev_shaping = shaping
 
-        reward -= m_power*0.30  # less fuel spent is better, about -30 for heurisic landing
-        reward -= s_power*0.03
+        # reward -= m_power*0.30  # less fuel spent is better, about -30 for heurisic landing
+        # reward -= s_power*0.03
 
         oob = abs(state[0]) >= 1.0
         timeout = self.curr_step >= MAX_NUM_STEPS
