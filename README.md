@@ -139,3 +139,16 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 3.21
 
 进行了几轮训练，之后需要继续训练。增加文件`double-DQN_main2.py`。此文件用于训练有copilot的agent。
+
+---
+
+
+
+3.23
+
+修改了`Shared_Control.py`的控制逻辑，使得人类无输入时，机器接替人类工作，获得了较好的结果。并且在其中添加了数据记录的功能；同时修改了`play_it_yourself.py`文件，加入数据记录；到此**main**主线基本完成；可以设计测试试验，以及之后的改进、增强、对比试验。
+
+还需要添加的功能：
+
+1. 视频录制
+2. APM记录

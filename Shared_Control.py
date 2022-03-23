@@ -17,7 +17,7 @@ DOWN = pygkey.DOWN
 ALG_NAME = 'DQN'
 ENV_ID = 'LunarLander_SC-v2'
 
-#TODO 添加当用户不操作，就让机器接管；注意，是用户不操作，即不按键
+#Done 添加当用户不操作，就让机器接管；注意，是用户不操作，即不按键
 key_flag = [0,0,0,0]   # ? 用于储存上下左右是否被按下，按下为1，抬起为0
 
 
@@ -79,10 +79,10 @@ model.eval()
 # load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
 
 # ! 可调参数--------------------------------------
-test_episodes = 2  # ? 测试次数
+test_episodes = 20  # ? 测试次数
 pilot_name = 'xzh'  # ? 驾驶员名称
-alpha = 0.95        # ? 相似系数
-load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost2' # ? 加载模型位置
+alpha = 0.96        # ? 相似系数
+load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost' # ? 加载模型位置
 if os.path.exists(load_model_path):
     print('Load DQN Network parametets ...')
     tl.files.load_hdf5_to_weights_in_order(os.path.join(load_model_path, 'model.hdf5'),model)
@@ -108,6 +108,14 @@ success_times = 0
 crash_times = 0
 human_action_taken_num = 0
 total_time = 1
+total_reward = 0
+
+#Done 把reward用rensorboard记录
+time_now  = datetime.datetime.now().strftime("%Y-%m-%d~%H-%M-%S")
+reward_log_dir = 'logs/test/' + time_now+'_'+pilot_name
+reward_summary_writer = tf.summary.create_file_writer(reward_log_dir)
+
+
 while 1:
     total_time +=1
     env.render()
@@ -128,15 +136,22 @@ while 1:
     next_state, reward, done, info = env.step(action)
     next_state = next_state[:8]
     state = next_state
+    total_reward += reward
     if done:
         env.render()
-        time.sleep(0.3)
-        done_num +=1
-        if info['success'] == 1:
+        time.sleep(0.3)           # ? 暂停0.3s，看见结果
+        done_num +=1              # ? 完成次数+1
+        if info['success'] == 1:  # ? 记录成功和坠毁次数
             success_times += 1
         if info['crash'] == 1:
             crash_times += 1 
-        observation = env.reset()
+        observation = env.reset() # ? 重启环境
+        key_flag = [0,0,0,0]
+
+        # ? 记录总回报
+        with reward_summary_writer.as_default():                   
+            tf.summary.scalar('reward', total_reward, step=done_num)
+        total_reward = 0
     if done_num>=test_episodes:
             break
 env.close()
@@ -145,13 +160,13 @@ print("Crash rate = "+ str(crash_times/test_episodes))
 print("human action taken rate = "+ str(human_action_taken_num/total_time))
 
 
-time  = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+# 记录数据，存在CSV文件中
 df1 = pd.read_csv('TestData_Record.csv')
 df2 = pd.DataFrame({'pilot\'s name':pilot_name,'Success rate':success_times/test_episodes,
                     'Crash rate':crash_times/test_episodes,'human action taken rate':human_action_taken_num/total_time,
-                    'test_time':test_episodes,'alpha':alpha,'time':time,
+                    'test_time':test_episodes,'alpha':alpha,'time':time_now,
                     'model_name':load_model_path},index=[0])
 dataframe = df1.merge(df2,how="outer")
 
