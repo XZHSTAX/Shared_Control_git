@@ -1,0 +1,4 @@
+pilot's name,Success rate,Crash rate,human action taken rate,test_time,alpha,time,model_name
+xzh,0.0,1.0,0.296969696969697,2,0.95,2022-03-23 12:21:44,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost2"
+xzh,0.0,1.0,0.6040372670807453,2,0.95,2022-03-23 12:22:57,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost2"
+xzh,0.0,1.0,0.7414448669201521,2,0.95,2022-03-23 12:47:55,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost2"
