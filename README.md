@@ -152,3 +152,11 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 
 1. 视频录制
 2. APM记录
+
+---
+
+
+
+3.24
+
+测试linux的git
