@@ -2,11 +2,12 @@ import gym
 import time
 import os
 from pyglet.window import key as pygkey
-import tensorlayer as tl
 import tensorflow as tf
+import tensorlayer as tl
 import numpy as np
 import pandas as pd
 import datetime
+
 human_agent_action = 0
 human_input_flag = 0
 LEFT = pygkey.LEFT
@@ -66,7 +67,7 @@ def human_pilot_policy(obs):
     return human_agent_action
 
 # ! 可调参数--------------------------------------
-test_episodes = 20  # ? 测试次数
+test_episodes = 5  # ? 测试次数
 pilot_name = 'xzh'  # ? 驾驶员名称
 
 env = gym.make(ENV_ID)
@@ -74,7 +75,11 @@ env.render()
 env.unwrapped.viewer.window.on_key_press = key_press
 env.unwrapped.viewer.window.on_key_release = key_release
 
-
+# outdir = "Video"
+# env = gym.wrappers.Monitor(env, directory=outdir, force=True,video_callable=lambda episode_id: True)  
+# # video_callable可以设置多少episode记录一次 
+# #（video_callable=lambda episode_id: True）[reference](https://github.com/openai/gym/issues/494)
+# # force可强制性地覆盖掉之前生成的记录文件
 
 state = env.reset()
 

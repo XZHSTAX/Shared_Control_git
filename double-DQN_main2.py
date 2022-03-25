@@ -27,7 +27,7 @@ parser.add_argument('--eps', type=float, default=0.05)
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 parser.add_argument('--update_episodes', type=int, default=10)
-parser.add_argument('--run_target', type=str, default='作者环境训练，小改,use-shaping-copilot-no-FuelCost2-test') # 会影响log文件的命名，保存模型位置
+parser.add_argument('--run_target', type=str, default='test_on_linux') # 会影响log文件的命名，保存模型位置
 parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
 parser.add_argument('--test_render', type=int, default=1)
 args = parser.parse_args()

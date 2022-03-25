@@ -21,7 +21,7 @@ register(
 )
 ```
 
-2. 在`envs\py_new2\Lib\site-packages\gym\envs\box2d\__init__.py`
+2. 在`gym\envs\box2d\__init__.py`
 
 中加入：
 
@@ -160,3 +160,19 @@ from gym.envs.box2d.LunarLander_SC import LunarLander_SC
 3.24
 
 测试linux的git
+
+---
+
+
+
+3.25
+
+终于把linux的环境给配置好了，遇到了一点小问题，不过也学到了一些东西。更新了配置文件：`requirements_linux.txt`和`environment_linux.yml`。推荐通过：
+
+```
+conda env create -f environment_linux.yml
+```
+
+来安装文件，这次的包应该是互相兼容的。另外，使用这条命令，需要删除`environment_linux.yml`中`dependencies:`里每行第二个等于号后面的语句。
+
+此外，还尝试了使用`Monitor`来录制视频，可以成功录制，但画面会变得非常慢。所以放弃了，另下载一个录屏软件来录制。
