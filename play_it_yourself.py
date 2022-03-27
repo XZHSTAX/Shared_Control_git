@@ -29,10 +29,10 @@ def key_press(key, mod):
     if a <= 0:
         return
     if a == LEFT:
-        human_agent_action = 3
+        human_agent_action = 1
         key_flag[2] = 1
     elif a == RIGHT:    
-        human_agent_action = 1
+        human_agent_action = 3
         key_flag[3] = 1
     elif a == UP:
         human_agent_action = 2
@@ -48,10 +48,10 @@ def key_release(key, mod):
     a = int(key)
 
     if a == LEFT:
-        a = 3
+        a = 1
         key_flag[2] = 0
     elif a == RIGHT:    
-        a = 1
+        a = 3
         key_flag[3] = 0
     elif a == UP:
         a = 2
@@ -67,8 +67,8 @@ def human_pilot_policy(obs):
     return human_agent_action
 
 # ! 可调参数--------------------------------------
-test_episodes = 5  # ? 测试次数
-pilot_name = 'xzh'  # ? 驾驶员名称
+test_episodes = 10  # ? 测试次数
+pilot_name = 'wsf'  # ? 驾驶员名称
 
 env = gym.make(ENV_ID)
 env.render()
