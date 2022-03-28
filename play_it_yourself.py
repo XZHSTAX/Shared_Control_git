@@ -20,7 +20,7 @@ ENV_ID = 'LunarLander_SC-v2'
 
 
 key_flag = [0,0,0,0]   # ? 用于储存上下左右是否被按下，按下为1，抬起为0
-
+inverse_control = 0    # ? 0 inverse 1 normal
 
 def key_press(key, mod):
     global human_agent_action
@@ -29,10 +29,10 @@ def key_press(key, mod):
     if a <= 0:
         return
     if a == LEFT:
-        human_agent_action = 1
+        human_agent_action = 1 if inverse_control else 3
         key_flag[2] = 1
     elif a == RIGHT:    
-        human_agent_action = 3
+        human_agent_action = 3 if inverse_control else 1
         key_flag[3] = 1
     elif a == UP:
         human_agent_action = 2
@@ -48,10 +48,10 @@ def key_release(key, mod):
     a = int(key)
 
     if a == LEFT:
-        a = 1
+        a = 1 if inverse_control else 3
         key_flag[2] = 0
     elif a == RIGHT:    
-        a = 3
+        a = 3 if inverse_control else 1
         key_flag[3] = 0
     elif a == UP:
         a = 2
@@ -68,7 +68,7 @@ def human_pilot_policy(obs):
 
 # ! 可调参数--------------------------------------
 test_episodes = 10  # ? 测试次数
-pilot_name = 'wsf'  # ? 驾驶员名称
+pilot_name = 'xzh-ez'  # ? 驾驶员名称
 
 env = gym.make(ENV_ID)
 env.render()

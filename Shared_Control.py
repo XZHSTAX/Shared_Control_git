@@ -79,8 +79,8 @@ model.eval()
 # load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
 
 # ! 可调参数--------------------------------------
-test_episodes = 50  # ? 测试次数
-pilot_name = 'xzh'  # ? 驾驶员名称
+test_episodes = 10  # ? 测试次数
+pilot_name = 'xzh-ez'  # ? 驾驶员名称
 alpha = 0.96        # ? 相似系数
 load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost' # ? 加载模型位置
 if os.path.exists(load_model_path):
