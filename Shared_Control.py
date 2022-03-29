@@ -19,7 +19,7 @@ ENV_ID = 'LunarLander_SC-v2'
 
 #Done 添加当用户不操作，就让机器接管；注意，是用户不操作，即不按键
 key_flag = [0,0,0,0]   # ? 用于储存上下左右是否被按下，按下为1，抬起为0
-inverse_control = 0    # ? 0 inverse 1 normal
+inverse_control = 1    # ? 0 inverse 1 normal
 
 def key_press(key, mod):
     global human_agent_action
@@ -79,8 +79,8 @@ model.eval()
 # load_model_path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
 
 # ! 可调参数--------------------------------------
-test_episodes = 10  # ? 测试次数
-pilot_name = 'xzh-ez'  # ? 驾驶员名称
+test_episodes = 30  # ? 测试次数
+pilot_name = 'zzc'  # ? 驾驶员名称
 alpha = 0.96        # ? 相似系数
 load_model_path = 'model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost' # ? 加载模型位置
 if os.path.exists(load_model_path):
