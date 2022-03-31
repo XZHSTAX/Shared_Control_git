@@ -19,6 +19,13 @@ register(
     max_episode_steps=1000,
     reward_threshold=200,
 )
+
+register(
+    id="LunarLanderContinuous_SC-v2",
+    entry_point="gym.envs.box2d:LunarLanderContinuous_SC",
+    max_episode_steps=1000,
+    reward_threshold=200,
+)
 ```
 
 2. 在`gym\envs\box2d\__init__.py`
@@ -27,9 +34,10 @@ register(
 
 ```python
 from gym.envs.box2d.LunarLander_SC import LunarLander_SC
+from gym.envs.box2d.LunarLander_SC import LunarLanderContinuous_SC
 ```
 
-3. 把这个`LunarLander_SC.py`文件丢入`envs\py_new2\Lib\site-packages\gym\envs\box2d`
+3. 把这个`LunarLander_SC_mine.py`文件丢入`envs\py_new2\Lib\site-packages\gym\envs\box2d`，并改名为`LunarLander_SC.py`
 
 # 问题
 
@@ -176,3 +184,9 @@ conda env create -f environment_linux.yml
 来安装文件，这次的包应该是互相兼容的。另外，使用这条命令，需要删除`environment_linux.yml`中`dependencies:`里每行第二个等于号后面的语句。
 
 此外，还尝试了使用`Monitor`来录制视频，可以成功录制，但画面会变得非常慢。所以放弃了，另下载一个录屏软件来录制。
+
+---
+
+3.31
+
+出了大问题，才发现可以多输入控制。导致我之前的训练必须全部重来一遍。更新了`play_it_yourself_continue.py`用于自己玩连续控制。明天再战。

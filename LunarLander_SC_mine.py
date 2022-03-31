@@ -441,7 +441,7 @@ class LunarLander_SC(gym.Env):
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
-class LunarLanderContinuous(LunarLander_SC):
+class LunarLanderContinuous_SC(LunarLander_SC):
     continuous = True
 
 def heuristic(env, s):
