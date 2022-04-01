@@ -1,14 +1,3 @@
-"""
-希望跟进的功能：
-1. 在tensorbord上增加loss显示  完成
-2. 在tensorbord上增加test显示  完成
--. 自动加载模型                完成
-3. 让gym返回成功或失败，向tensorbord加入成功率和坠毁率
-. gym 中，成功了把车变绿色，失败变为红色
-4. 变epsilon
-
-"""
-
 import argparse
 import os
 import random

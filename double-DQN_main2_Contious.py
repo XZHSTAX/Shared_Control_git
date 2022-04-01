@@ -1,3 +1,7 @@
+"""
+此py文件是为了主试验而建立，使用原作者所给lunar_lander进行训练
+"""
+
 import argparse
 import os
 import random
@@ -9,28 +13,37 @@ import gym
 import tensorflow as tf
 import tensorlayer as tl
 import datetime
+import time
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 parser = argparse.ArgumentParser()
-parser.add_argument('--train', dest='train', default=True)
-parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--lr', type=float, default=0.00075)
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--eps', type=float, default=0.05)
 
-parser.add_argument('--train_episodes', type=int, default=1000)
-parser.add_argument('--test_episodes', type=int, default=10)
-parser.add_argument('--update_episodes', type=int, default=100)
-parser.add_argument('--run_target', type=str, default='DDQN-on1')
-args = parser.parse_args()
+parser.add_argument('--update_episodes', type=int, default=10)
+parser.add_argument('--continue_train', type=int, default=1)         # 是否使用上一次训练的模型
+parser.add_argument('--test_render', type=int, default=1)
+
 
 ALG_NAME = 'DQN'
 # ENV_ID = 'CartPole-v0'
 ENV_ID = 'LunarLanderContinuous_SC-v2'
 
-HP_UPDATE_EPISODE= hp.HParam('update_episode', hp.Discrete([2, 10, 15]))
+# ! 常改参数------------------------------------------------------------------------------------------
+parser.add_argument('--train', dest='train', default=False)
+parser.add_argument('--test', dest='test', default=True)
 
+parser.add_argument('--train_episodes', type=int, default=1000)
+parser.add_argument('--test_episodes', type=int, default=100)
+
+parser.add_argument('--run_target', type=str, default='A3模型-测试100') # 会影响log文件的命名，保存模型位置
+args = parser.parse_args()
+save_model_path = os.path.join('model', 'A3') # ? 模型保存位置
+load_model_path = 'model/A3'                                                                  # ? 模型加载位置
+use_copilot = 0  # ? 0：不使用copilot  1：使用copilot
+# ! --------------------------------------------------------------------------------------------------
 
 def tf_gather_new(x,h_index):
     """以h_index为索引，提取x对应行上的元素，x为二位数组,h也为二位数组"""
@@ -88,16 +101,23 @@ class ReplayBuffer:
 class Agent:
     def __init__(self, env):
         self.env = env
-        self.state_dim = self.env.observation_space.shape[0]
+        self.state_dim = self.env.observation_space.shape[0]-1
         # self.action_dim = self.env.action_space.n
         self.action_dim = 6
 
-        self.train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
         self.current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-        # self.train_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target+ '/train'
-        self.reward_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/reward'
-        # self.train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
-        self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
+        if args.test:
+            self.test_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/test'
+            self.test_summary_writer = tf.summary.create_file_writer(self.test_log_dir)
+        if args.train:
+            self.train_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target+ '/train'
+            self.train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
+            self.reward_log_dir = 'logs/gradient_tape/' + self.current_time+'_'+args.run_target + '/reward'
+            self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
+        
+        self.save_model_path = save_model_path
+        self.load_model_path = load_model_path  
+        self.use_copilot     = use_copilot
 
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
@@ -111,6 +131,9 @@ class Agent:
         self.target_model = create_model([None, self.state_dim])
         self.model.train()
         self.target_model.eval()
+        if os.path.exists(self.load_model_path) and args.continue_train==1:
+            self.loadModel()
+
         self.model_optim = self.target_model_optim = tf.optimizers.Adam(lr=args.lr)
 
         self.epsilon = args.eps
@@ -123,12 +146,21 @@ class Agent:
                 self.model.trainable_weights, self.target_model.trainable_weights):
             target_weights.assign(weights)
 
-    def choose_action(self, state):
-        if np.random.uniform() < self.epsilon:
+    def choose_action(self, state,copilot,epsilon_on = 1):
+        if np.random.uniform() < self.epsilon and epsilon_on==1:
             return np.random.choice(self.action_dim)
         else:
-            q_value = self.model(state[np.newaxis, :])[0]
-            return np.argmax(q_value)
+            if copilot==0:
+                q_value = self.model(state[np.newaxis, :])[0]
+                return np.argmax(q_value)
+            else:
+                q_value = self.model(state[np.newaxis, :])[0].numpy()
+                q_copilot = q_value[copilot]
+                q_max = np.max(q_value)
+                if q_copilot >= q_max*0.975:
+                    return copilot
+                else:
+                    return np.argmax(q_value)
 
     def replay(self):
         # for i in range(10):
@@ -143,7 +175,7 @@ class Agent:
         next_a = tf.argmax(next_Q, axis=1).numpy()      # 评估网络推测状态s'下应该采取的动作
 
         next_target = self.target_model(next_states)        # 目标网络推测状态s'下所有动作的Q值
-        next_q_value = tf_gather_new(next_target, next_a.reshape([args.batch_size,1]))   # 目标网络推测状态s'下，采取next_a动作的Q值
+        next_q_value = tf_gather_new(next_target, next_a.reshape([args.batch_size,1]))   # 目标网络推测状态s'下，采取next_a动作对饮的Q值
 
         target = rewards + (1 - done) * args.gamma * next_q_value
 
@@ -154,26 +186,43 @@ class Agent:
             loss = tf.losses.mean_squared_error(target, q_pred)
         grads = tape.gradient(loss, self.model.trainable_weights)
         self.model_optim.apply_gradients(zip(grads, self.model.trainable_weights))
-
-            # self.train_loss(loss)
-            # with self.train_summary_writer.as_default():
-            #     tf.summary.scalar('loss', self.train_loss.result(), step=i)
+        return loss.numpy()
 
 
     def test_episode(self, test_episodes):
+        success_times = 0
+        crash_times = 0
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
+            copilot = int(state[8]) if self.use_copilot else 0
+            state = state[:8]
             total_reward, done = 0, False
             while not done:
-                action = self.model(np.array([state], dtype=np.float32))[0]
-                action = np.argmax(action)
-                next_state, reward, done, _ = self.env.step(disc_to_cont(action))
+                if args.test_render: self.env.render()             
+                # action = self.model(np.array([state], dtype=np.float32))[0]
+                # action = np.argmax(action)
+                action = self.choose_action(state, copilot,epsilon_on = 0)
+                next_state, reward, done, info = self.env.step(disc_to_cont(action))
+                
+                copilot = int(next_state[8]) if self.use_copilot else 0
+                next_state = next_state[:8]
                 next_state = next_state.astype(np.float32)
 
                 total_reward += reward
                 state = next_state
+            if args.test_render:
                 self.env.render()
+                time.sleep(0.3)
+            if info['success'] == 1:
+                success_times += 1
+            if info['crash'] == 1:
+                crash_times += 1 
+            # 每测试完一次，记录一次
+            with self.test_summary_writer.as_default():
+                tf.summary.scalar('test-reward', total_reward, step=episode)
             print("Test {} | episode rewards is {}".format(episode, total_reward))
+        print("Success rate = "+str(success_times/test_episodes))
+        print("Crash rate = "+ str(crash_times/test_episodes))
 
     def train(self, train_episodes=200):
         i = 0
@@ -181,17 +230,20 @@ class Agent:
             for episode in range(train_episodes):
                 total_reward, done = 0, False
                 state = self.env.reset().astype(np.float32)
+                copilot = int(state[8]) if self.use_copilot else 0
+                state = state[:8]
                 while not done:
-                    action = self.choose_action(state)
+                    action = self.choose_action(state,copilot)
                     next_state, reward, done, _ = self.env.step(disc_to_cont(action))
+                    copilot = int(next_state[8]) if self.use_copilot else 0
+                    next_state = next_state[:8]
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
                     total_reward += reward
                     state = next_state
                     # self.render()
                     if len(self.buffer.buffer) > args.batch_size:
-                        self.replay()
-                        # self.target_update()
+                        loss = self.replay()
                     i = i+1
                     if i>= args.update_episodes:
                         self.target_update()
@@ -199,27 +251,28 @@ class Agent:
                 print('EP:{} | R:{}'.format(episode, total_reward))
                 with self.reward_summary_writer.as_default():
                     tf.summary.scalar('reward', total_reward, step=episode)
-                # if episode % 10 == 0:
-                #     self.test_episode()
+                if len(self.buffer.buffer) > args.batch_size:
+                    with self.train_summary_writer.as_default():
+                        tf.summary.scalar('loss', loss, step=episode)
+                if episode % 100 == 0 and episode != 0:
+                    self.saveModel()
             self.saveModel()
         if args.test:
             self.loadModel()
             self.test_episode(test_episodes=args.test_episodes)
 
     def saveModel(self):
-        path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-        if not os.path.exists(path):
-            os.makedirs(path)
-        tl.files.save_weights_to_hdf5(os.path.join(path, 'model.hdf5'), self.model)
-        tl.files.save_weights_to_hdf5(os.path.join(path, 'target_model.hdf5'), self.target_model)
+        if not os.path.exists(self.save_model_path):
+            os.makedirs(self.save_model_path)
+        tl.files.save_weights_to_hdf5(os.path.join(self.save_model_path, 'model.hdf5'), self.model)
+        tl.files.save_weights_to_hdf5(os.path.join(self.save_model_path, 'target_model.hdf5'), self.target_model)
         print('Saved weights.')
 
     def loadModel(self):
-        path = os.path.join('model', '_'.join([ALG_NAME, ENV_ID]))
-        if os.path.exists(path):
+        if os.path.exists(self.load_model_path):
             print('Load DQN Network parametets ...')
-            tl.files.load_hdf5_to_weights_in_order(os.path.join(path, 'model.hdf5'), self.model)
-            tl.files.load_hdf5_to_weights_in_order(os.path.join(path, 'target_model.hdf5'), self.target_model)
+            tl.files.load_hdf5_to_weights_in_order(os.path.join(self.load_model_path, 'model.hdf5'), self.model)
+            tl.files.load_hdf5_to_weights_in_order(os.path.join(self.load_model_path, 'target_model.hdf5'), self.target_model)
             print('Load weights!')
         else: print("No model file find, please train model first...")
 
