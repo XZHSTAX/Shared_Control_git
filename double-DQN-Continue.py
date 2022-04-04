@@ -23,19 +23,19 @@ parser.add_argument('--continue_train', type=int, default=1)         # 是否使
 
 ALG_NAME = 'DQN'
 # ENV_ID = 'CartPole-v0'
-ENV_ID = 'LunarLanderContinuous-v2'
 
 # ! 常改参数------------------------------------------------------------------------------------------
-parser.add_argument('--train', dest='train', default=False)
-parser.add_argument('--test', dest='test', default=True)
+ENV_ID = 'LunarLanderContinuous_SC-v2'
+parser.add_argument('--train', dest='train', default=True)
+parser.add_argument('--test', dest='test', default=False)
 
-parser.add_argument('--train_episodes', type=int, default=2000)
+parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 
-parser.add_argument('--run_target', type=str, default='A1_plus1-测试100') # 会影响log文件的命名，保存模型位置
+parser.add_argument('--run_target', type=str, default='A3_plus1') # ? 会影响log文件的命名，保存模型位置
 args = parser.parse_args()
-save_model_path = os.path.join('model', 'A1_plus1') # ? 模型保存位置
-load_model_path = 'model/A1_plus1'                                                                  # ? 模型加载位置
+save_model_path = os.path.join('model', 'A3_plus1')               # ? 模型保存位置
+load_model_path = 'model/A2_plus1'                                # ? 模型加载位置
 # ! --------------------------------------------------------------------------------------------------
 
 

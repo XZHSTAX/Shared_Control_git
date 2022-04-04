@@ -29,20 +29,20 @@ parser.add_argument('--test_render', type=int, default=1)
 
 ALG_NAME = 'DQN'
 # ENV_ID = 'CartPole-v0'
-ENV_ID = 'LunarLanderContinuous_SC-v2'
 
 # ! 常改参数------------------------------------------------------------------------------------------
+ENV_ID = 'LunarLanderContinuous_SC-v2'
 parser.add_argument('--train', dest='train', default=False)
 parser.add_argument('--test', dest='test', default=True)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 
-parser.add_argument('--run_target', type=str, default='A3模型-测试100') # 会影响log文件的命名，保存模型位置
+parser.add_argument('--run_target', type=str, default='A4_plus1-测试100轮') # ? 会影响log文件的命名，保存模型位置
 args = parser.parse_args()
-save_model_path = os.path.join('model', 'A3') # ? 模型保存位置
-load_model_path = 'model/A3'                                                                  # ? 模型加载位置
-use_copilot = 0  # ? 0：不使用copilot  1：使用copilot
+save_model_path = os.path.join('model', 'A4_plus1') # ? 模型保存位置
+load_model_path = 'model/A4_plus1'                  # ? 模型加载位置
+use_copilot = 1                                     # ? 0：不使用copilot  1：使用copilot
 # ! --------------------------------------------------------------------------------------------------
 
 def tf_gather_new(x,h_index):
@@ -150,7 +150,7 @@ class Agent:
         if np.random.uniform() < self.epsilon and epsilon_on==1:
             return np.random.choice(self.action_dim)
         else:
-            if copilot==0:
+            if copilot==1:
                 q_value = self.model(state[np.newaxis, :])[0]
                 return np.argmax(q_value)
             else:
@@ -194,7 +194,7 @@ class Agent:
         crash_times = 0
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
-            copilot = int(state[8]) if self.use_copilot else 0
+            copilot = int(state[8]) if self.use_copilot else 1
             state = state[:8]
             total_reward, done = 0, False
             while not done:
@@ -204,7 +204,7 @@ class Agent:
                 action = self.choose_action(state, copilot,epsilon_on = 0)
                 next_state, reward, done, info = self.env.step(disc_to_cont(action))
                 
-                copilot = int(next_state[8]) if self.use_copilot else 0
+                copilot = int(next_state[8]) if self.use_copilot else 1
                 next_state = next_state[:8]
                 next_state = next_state.astype(np.float32)
 
@@ -230,12 +230,12 @@ class Agent:
             for episode in range(train_episodes):
                 total_reward, done = 0, False
                 state = self.env.reset().astype(np.float32)
-                copilot = int(state[8]) if self.use_copilot else 0
+                copilot = int(state[8]) if self.use_copilot else 1
                 state = state[:8]
                 while not done:
                     action = self.choose_action(state,copilot)
                     next_state, reward, done, _ = self.env.step(disc_to_cont(action))
-                    copilot = int(next_state[8]) if self.use_copilot else 0
+                    copilot = int(next_state[8]) if self.use_copilot else 1
                     next_state = next_state[:8]
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
