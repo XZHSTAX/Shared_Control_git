@@ -28,16 +28,17 @@ ALG_NAME = 'DQN'
 
 # ! 常改参数------------------------------------------------------------------------------------------
 ENV_ID = 'LunarLanderContinuous_SC-v2'
-parser.add_argument('--train', dest='train', default=False)
-parser.add_argument('--test', dest='test', default=True)
+parser.add_argument('--train', dest='train', default=True)
+parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 
-parser.add_argument('--run_target', type=str, default='A4_plus2-测试100轮') # ? 会影响log文件的命名
+parser.add_argument('--run_target', type=str, default='A5_plus2') # ? 会影响log文件的命名
 args = parser.parse_args()
-save_model_path = os.path.join('model', 'A4_plus2') # ? 模型保存位置
+save_model_path = os.path.join('model', 'A5_plus2') # ? 模型保存位置
 load_model_path = 'model/A4_plus2'                  # ? 模型加载位置
+laggy_model_path = 'model/A4_plus2'
 use_copilot = 1                                     # ? 0：不使用copilot  1：使用copilot
 # ! --------------------------------------------------------------------------------------------------
 
@@ -112,7 +113,8 @@ class Agent:
             self.reward_summary_writer = tf.summary.create_file_writer(self.reward_log_dir)
         
         self.save_model_path = save_model_path
-        self.load_model_path = load_model_path  
+        self.load_model_path = load_model_path
+        self.laggy_model_path = laggy_model_path  
         self.use_copilot     = use_copilot
 
         def create_model(input_state_shape):
@@ -125,8 +127,12 @@ class Agent:
 
         self.model = create_model([None, self.state_dim])
         self.target_model = create_model([None, self.state_dim])
+        self.laggy_model = create_model([None, self.state_dim])
+        
         self.model.train()
         self.target_model.eval()
+        self.laggy_model.eval()
+        
         if os.path.exists(self.load_model_path) and args.continue_train==1:
             self.loadModel()
 
@@ -135,6 +141,7 @@ class Agent:
         self.epsilon = args.eps
 
         self.buffer = ReplayBuffer()
+        self.last_laggy_action = 1    # 初始化laggy动作为 无
 
     def target_update(self):
         """Copy q network to target q network"""
@@ -142,21 +149,49 @@ class Agent:
                 self.model.trainable_weights, self.target_model.trainable_weights):
             target_weights.assign(weights)
 
-    def choose_action(self, state,copilot,epsilon_on = 1):
+    def laggy_pilot(self,state,copilot_rl,lag_prob=0.8):
+        """
+        laggy的组成：输入：
+        state当前状态，copilot_rl左右手控制信号,lag_prob重复上一个动作的概率
+        如果laggy network认为左右手控制的更好，那就返回左右手
+        """
+        Q_value_laggy_action = self.laggy_model(state[np.newaxis, :])[0].numpy() # ? laggy对Q值的评估
+        laggy_action         = np.argmax(Q_value_laggy_action)                   # ? laggy认为最佳动作
+        Q_value_max_laggy_action = Q_value_laggy_action[laggy_action]            # ? laggy认为最佳动作的Q值
+        
+        if np.random.random() >= lag_prob:                                       # ? 如果执行新的动作
+            if Q_value_laggy_action[copilot_rl] >= 0.975*Q_value_max_laggy_action: # ? 如果左右手更好
+                laggy_action = copilot_rl
+                self.last_laggy_action = laggy_action
+        else:
+            laggy_action = self.last_laggy_action
+        return laggy_action
+
+    def human_copilot_action_arbitration(self,copilot_Q,pilot_action):
+        """
+        人机交互仲裁，现在只实现了简单的最优动作替换
+        输入： copilot_Q：Copilot对当前动作的评估值；pilot_action飞行员输入的动作
+        输出： 仲裁后，认为最优的动作
+        """
+        copilot_Qmax = np.max(copilot_Q)                            # ? copilot 认为最佳动作的Q值
+        copilot_action = np.argmax(copilot_Q)                        # ? copilot 认为最佳动作
+        if copilot_Q[int(pilot_action)] >= copilot_Qmax*0.975:
+            return pilot_action
+        else:
+            return copilot_action
+
+    def choose_action(self, state,copilot_rl,epsilon_on = 1):
         if np.random.uniform() < self.epsilon and epsilon_on==1:
             return np.random.choice(self.action_dim)
         else:
-            if copilot==1:
+            if self.use_copilot==0:
                 q_value = self.model(state[np.newaxis, :])[0]
                 return np.argmax(q_value)
             else:
-                q_value = self.model(state[np.newaxis, :])[0].numpy()
-                q_copilot = q_value[copilot]
-                q_max = np.max(q_value)
-                if q_copilot >= q_max*0.975:
-                    return copilot
-                else:
-                    return np.argmax(q_value)
+                copilot_Q     = self.model(state[np.newaxis, :])[0].numpy()  # ? copilot 对Q值的评估
+                pilot_action  = self.laggy_pilot(state,copilot_rl)           # ? pilot 认为最佳动作
+                return self.human_copilot_action_arbitration(copilot_Q,pilot_action)
+
 
     def replay(self):
         # for i in range(10):
@@ -190,17 +225,17 @@ class Agent:
         crash_times = 0
         for episode in range(test_episodes):
             state = self.env.reset().astype(np.float32)
-            copilot = int(state[8]) if self.use_copilot else 1
+            copilot_rl = int(state[8]) 
             state = state[:8]
             total_reward, done = 0, False
             while not done:
                 if args.test_render: self.env.render()             
                 # action = self.model(np.array([state], dtype=np.float32))[0]
                 # action = np.argmax(action)
-                action = self.choose_action(state, copilot,epsilon_on = 0)
+                action = self.choose_action(state, copilot_rl,epsilon_on = 0)
                 next_state, reward, done, info = self.env.step(disc_to_cont(action))
                 
-                copilot = int(next_state[8]) if self.use_copilot else 1
+                copilot_rl = int(next_state[8])
                 next_state = next_state[:8]
                 next_state = next_state.astype(np.float32)
 
@@ -226,12 +261,12 @@ class Agent:
             for episode in range(train_episodes):
                 total_reward, done = 0, False
                 state = self.env.reset().astype(np.float32)
-                copilot = int(state[8]) if self.use_copilot else 1
+                copilot_rl = int(state[8])
                 state = state[:8]
                 while not done:
-                    action = self.choose_action(state,copilot)
+                    action = self.choose_action(state,copilot_rl)
                     next_state, reward, done, _ = self.env.step(disc_to_cont(action))
-                    copilot = int(next_state[8]) if self.use_copilot else 1
+                    copilot_rl = int(next_state[8])
                     next_state = next_state[:8]
                     next_state = next_state.astype(np.float32)
                     self.buffer.push(state, action, reward, next_state, done)
@@ -271,6 +306,11 @@ class Agent:
             tl.files.load_hdf5_to_weights_in_order(os.path.join(self.load_model_path, 'target_model.hdf5'), self.target_model)
             print('Load weights!')
         else: print("No model file find, please train model first...")
+        if self.use_copilot:
+            if os.path.exists(self.laggy_model_path):
+                print('Load Laggy_Pilot parametets ...')
+                tl.files.load_hdf5_to_weights_in_order(os.path.join(self.laggy_model_path, 'model.hdf5'), self.laggy_model)
+            else: print("No laggy_model file find, please train model first...")
 
 
 if __name__ == '__main__':
