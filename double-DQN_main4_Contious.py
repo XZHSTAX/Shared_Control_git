@@ -28,17 +28,17 @@ ALG_NAME = 'DQN'
 
 # ! 常改参数------------------------------------------------------------------------------------------
 ENV_ID = 'LunarLanderContinuous_SC-v2'
-parser.add_argument('--train', dest='train', default=True)
-parser.add_argument('--test', dest='test', default=False)
+parser.add_argument('--train', dest='train', default=False)
+parser.add_argument('--test', dest='test', default=True)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 
-parser.add_argument('--run_target', type=str, default='A4_plus3') # ? 会影响log文件的命名
+parser.add_argument('--run_target', type=str, default='A5_plus3-测试100轮') # ? 会影响log文件的命名
 args = parser.parse_args()
-save_model_path = os.path.join('model', 'A4_plus3') # ? 模型保存位置
-load_model_path = 'model/A3_plus2'                  # ? 模型加载位置
-laggy_model_path = 'model/A4_plus2'
+save_model_path = os.path.join('model', 'A5_plus3') # ? 模型保存位置
+load_model_path = 'model/A5_plus3'                  # ? 模型加载位置
+laggy_model_path = 'model/A4_plus3'
 use_copilot = 1                                     # ? 0：不使用copilot  1：使用copilot
 # ! --------------------------------------------------------------------------------------------------
 
@@ -221,8 +221,8 @@ class Agent:
                 return np.argmax(q_value)
             else:
                 copilot_Q     = self.model(state[np.newaxis, :])[0].numpy()  # ? copilot 对Q值的评估
-                # pilot_action  = self.laggy_pilot(state,copilot_rl)           # ? pilot 认为最佳动作
-                pilot_action = copilot_rl
+                pilot_action  = self.laggy_pilot(state,copilot_rl)           # ? pilot 认为最佳动作
+                # pilot_action = copilot_rl
                 return self.human_copilot_action_arbitration(copilot_Q,pilot_action)
 
 
@@ -274,6 +274,7 @@ class Agent:
 
                 total_reward += reward
                 state = next_state
+            self.last_laggy_action = 1
             if args.test_render:
                 self.env.render()
                 time.sleep(0.3)
@@ -313,6 +314,7 @@ class Agent:
                         self.target_update()
                         i = 0
                 print('EP:{} | R:{}'.format(episode, total_reward))
+                self.last_laggy_action = 1
                 with self.reward_summary_writer.as_default():
                     tf.summary.scalar('reward', total_reward, step=episode)
                 if len(self.buffer.buffer) > args.batch_size:
