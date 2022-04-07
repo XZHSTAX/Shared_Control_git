@@ -28,18 +28,18 @@ ALG_NAME = 'DQN'
 
 # ! 常改参数------------------------------------------------------------------------------------------
 ENV_ID = 'LunarLanderContinuous_SC-v2'
-parser.add_argument('--train', dest='train', default=False)
-parser.add_argument('--test', dest='test', default=True)
+parser.add_argument('--train', dest='train', default=True)
+parser.add_argument('--test', dest='test', default=False)
 
 parser.add_argument('--train_episodes', type=int, default=1000)
 parser.add_argument('--test_episodes', type=int, default=100)
 
-parser.add_argument('--run_target', type=str, default='A5_plus2-纯Copilot测试100轮') # ? 会影响log文件的命名
+parser.add_argument('--run_target', type=str, default='A4_plus3') # ? 会影响log文件的命名
 args = parser.parse_args()
-save_model_path = os.path.join('model', 'A5_plus2') # ? 模型保存位置
-load_model_path = 'model/A5_plus2'                  # ? 模型加载位置
+save_model_path = os.path.join('model', 'A4_plus3') # ? 模型保存位置
+load_model_path = 'model/A3_plus2'                  # ? 模型加载位置
 laggy_model_path = 'model/A4_plus2'
-use_copilot = 0                                     # ? 0：不使用copilot  1：使用copilot
+use_copilot = 1                                     # ? 0：不使用copilot  1：使用copilot
 # ! --------------------------------------------------------------------------------------------------
 
 def tf_gather_new(x,h_index):
@@ -70,6 +70,17 @@ def disc_to_cont(action):
     else:
         s = throttle_mag
     return np.array([m, s])
+
+def how_sim(a1,a2):
+    X = np.array([[2,1,1,1,0,0],
+                  [1,2,1,0,0,0],
+                  [1,1,2,0,0,1],
+                  [1,0,0,2,1,1],
+                  [0,0,0,1,2,1],
+                  [0,0,1,1,1,2]])
+    return X[a1,a2]    
+
+
 
 class ReplayBuffer:
     def __init__(self, capacity=10000):
@@ -116,6 +127,7 @@ class Agent:
         self.load_model_path = load_model_path
         self.laggy_model_path = laggy_model_path  
         self.use_copilot     = use_copilot
+        self.torlence_alpha = 0.975
 
         def create_model(input_state_shape):
             input_layer = tl.layers.Input(input_state_shape)
@@ -126,7 +138,7 @@ class Agent:
             return tl.models.Model(inputs=input_layer, outputs=output_layer)
 
         self.model = create_model([None, self.state_dim])
-        self.target_model = create_model([None, self.state_dim])
+        self.target_model = create_model([None, self.state_dim])        
         
         
         self.model.train()
@@ -169,18 +181,36 @@ class Agent:
             laggy_action = self.last_laggy_action
         return laggy_action
 
-    def human_copilot_action_arbitration(self,copilot_Q,pilot_action):
+    def human_copilot_action_arbitration(self,copilot_Q,pilot_action,arbitration_way =2):
         """
-        人机交互仲裁，现在只实现了简单的最优动作替换
+        人机交互仲裁，arbitration_way =1最优动作替换,arbitration_way =2 相似动作替换
         输入： copilot_Q：Copilot对当前动作的评估值；pilot_action飞行员输入的动作
         输出： 仲裁后，认为最优的动作
         """
         copilot_Qmax = np.max(copilot_Q)                            # ? copilot 认为最佳动作的Q值
         copilot_action = np.argmax(copilot_Q)                        # ? copilot 认为最佳动作
-        if copilot_Q[int(pilot_action)] >= copilot_Qmax*0.975:
-            return pilot_action
-        else:
-            return copilot_action
+
+        if arbitration_way==1:
+            if copilot_Q[int(pilot_action)] >= copilot_Qmax*0.975:
+                return pilot_action
+            else:
+                return copilot_action
+        elif arbitration_way==2:
+
+            copilot_Qmin = np.min(copilot_Q)                            # ? copilot 认为最差动作的Q值
+            action_mask = ((copilot_Q-copilot_Qmin*np.ones(copilot_Q.shape)) >= self.torlence_alpha*(copilot_Qmax-copilot_Qmin))
+            action_sim = how_sim(np.array([0,1,2,3,4,5]),pilot_action)
+
+            action_chooseable =  action_mask*action_sim
+            if not any(action_chooseable):                             # ? 如果全是0
+                return copilot_action
+            elif np.sum(action_chooseable==1)<=1 or np.sum(action_chooseable==2)==1:  # ? 如果就1个1或有2
+                return np.argmax(action_chooseable)
+            else:
+                a = np.nonzero(action_chooseable==1)
+                a = np.array(a)[0]
+                return a[np.argmax(np.random.rand(a.shape[0]))]
+                
 
     def choose_action(self, state,copilot_rl,epsilon_on = 1):
         if np.random.uniform() < self.epsilon and epsilon_on==1:
@@ -191,7 +221,8 @@ class Agent:
                 return np.argmax(q_value)
             else:
                 copilot_Q     = self.model(state[np.newaxis, :])[0].numpy()  # ? copilot 对Q值的评估
-                pilot_action  = self.laggy_pilot(state,copilot_rl)           # ? pilot 认为最佳动作
+                # pilot_action  = self.laggy_pilot(state,copilot_rl)           # ? pilot 认为最佳动作
+                pilot_action = copilot_rl
                 return self.human_copilot_action_arbitration(copilot_Q,pilot_action)
 
 
