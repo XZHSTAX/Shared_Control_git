@@ -163,7 +163,7 @@ class Agent:
                 self.model.trainable_weights, self.target_model.trainable_weights):
             target_weights.assign(weights)
 
-    def laggy_pilot(self,state,copilot_rl,lag_prob=0.8):
+    def laggy_pilot(self,state,copilot_rl,lag_prob=0.5):
         """
         laggy的组成：输入：
         state当前状态，copilot_rl左右手控制信号,lag_prob重复上一个动作的概率
@@ -203,13 +203,13 @@ class Agent:
 
             action_chooseable =  action_mask*action_sim
             if not any(action_chooseable):                             # ? 如果全是0
-                return copilot_action
+                return copilot_action                                  # ? 返回copilot的动作
             elif np.sum(action_chooseable==1)<=1 or np.sum(action_chooseable==2)==1:  # ? 如果就1个1或有2
-                return np.argmax(action_chooseable)
+                return np.argmax(action_chooseable)                                   # ? 返回最佳动作
             else:
                 a = np.nonzero(action_chooseable==1)
                 a = np.array(a)[0]
-                return a[np.argmax(np.random.rand(a.shape[0]))]
+                return a[np.argmax(np.random.rand(a.shape[0]))]                       # ? 从相同的最佳中随机抽取
                 
 
     def choose_action(self, state,copilot_rl,epsilon_on = 1):
@@ -274,7 +274,7 @@ class Agent:
 
                 total_reward += reward
                 state = next_state
-            self.last_laggy_action = 1
+            self.last_laggy_action = 1     # ! 完成一幕后，要让last_laggy_action恢复默认值
             if args.test_render:
                 self.env.render()
                 time.sleep(0.3)
@@ -314,7 +314,7 @@ class Agent:
                         self.target_update()
                         i = 0
                 print('EP:{} | R:{}'.format(episode, total_reward))
-                self.last_laggy_action = 1
+                self.last_laggy_action = 1                     # ! 完成一幕后，要让last_laggy_action恢复默认值
                 with self.reward_summary_writer.as_default():
                     tf.summary.scalar('reward', total_reward, step=episode)
                 if len(self.buffer.buffer) > args.batch_size:

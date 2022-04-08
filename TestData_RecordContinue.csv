@@ -1,0 +1,2 @@
+pilot's name,Success rate,Crash rate,human action taken rate,test_time,alpha,time,model_name
+测试,0.1,0.8,0.7169877408056042,10,0.96,2022-04-08~12-38-17,model/A5_plus2
