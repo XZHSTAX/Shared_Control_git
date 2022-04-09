@@ -108,4 +108,7 @@ hgh-test,0.5,0.2,0.5745465723947125,10,0.96,2022-03-29~21-01-01,"model/DQN_Lunar
 hgh,0.6333333333333333,0.1333333333333333,0.6057007125890737,30,0.96,2022-03-29~21-02-15,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
 zzc,0.4,0.4,0.6650746268656716,10,0.96,2022-03-29~21-07-38,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
 zzc,0.2,0.3,0.6373482113554316,10,0.96,2022-03-29~21-08-43,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
-zzc,0.3333333333333333,0.36666666666666664,0.6010083648447347,30,0.96,2022-03-29~21-09-48,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
+zzc,0.3333333333333333,0.3666666666666666,0.6010083648447347,30,0.96,2022-03-29~21-09-48,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
+zzc,0.6666666666666666,0.3,0.6610637531516389,30,0.96,2022-04-08~14-59-45,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
+zzc,0.7333333333333333,0.2333333333333333,0.2856987374836743,30,0.96,2022-04-08~15-04-25,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"
+zzc,0.7333333333333333,0.23333333333333334,0.32959697732997484,30,0.96,2022-04-08~15-27-26,"model/DQN_LunarLander_SC-v2_作者环境训练，小改,use-shaping-copilot-no-FuelCost"

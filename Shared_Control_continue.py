@@ -30,25 +30,34 @@ def key_press(key, mod):
   a = int(key)
   if a == LEFT:
       human_agent_action[1] = 0 if inverse_control else 2
+      key_flag[2] = 1
   elif a == RIGHT:
       human_agent_action[1] = 2 if inverse_control else 0
+      key_flag[3] = 1
   elif a == UP:
       human_agent_action[0] = 1
+      key_flag[0] = 1
   elif a == DOWN:
       human_agent_action[0] = 0
+      key_flag[1] = 1
 
 def key_release(key, mod):
-  """
-  这是一个按键抬起转换函数，当抬起 上下左右转化为human_agent_action数组中的数值
-  并且关闭human_agent_active
-  """
-  global human_agent_action
-  a = int(key)
-  if a == LEFT or a == RIGHT:
-      human_agent_action[1] = 1
-  elif a == UP or a == DOWN:
-      human_agent_action[0] = 0
-    
+    """
+    这是一个按键抬起转换函数，当抬起 上下左右转化为human_agent_action数组中的数值
+    并且关闭human_agent_active
+    """
+    global human_agent_action
+    a = int(key)
+    if a == LEFT or a == RIGHT:
+        human_agent_action[1] = 1
+        if a == LEFT:   key_flag[2] = 0
+        if a == RIGHT:  key_flag[3] = 0
+    elif a == UP or a == DOWN:
+        human_agent_action[0] = 0
+        if a == UP:     key_flag[0] = 0
+        if a == DOWN:   key_flag[1] = 0
+
+
 # 转化输入码 return = 上下*3+左右  范围0~5
 # down + left    0  下左
 # down + none    1  下
@@ -105,7 +114,7 @@ model.eval()
 test_episodes = 10  # ? 测试次数
 pilot_name = '测试'  # ? 驾驶员名称
 alpha = 0.96        # ? 相似系数
-load_model_path = 'model/A5_plus2' # ? 加载模型位置
+load_model_path = 'model/A3_plus2.5' # ? 加载模型位置
 if os.path.exists(load_model_path):
     print('Load DQN Network parametets ...')
     tl.files.load_hdf5_to_weights_in_order(os.path.join(load_model_path, 'model.hdf5'),model)
@@ -146,16 +155,11 @@ while 1:
     bot_action_Q = model(np.array([state], dtype=np.float32))[0]
     bot_action = np.argmax(bot_action_Q)
 
-    # if not any(key_flag):
-    #     # ? 如果没有按键按下，key_flag全0，any(key_flag)返回false
-    #     # ? 有按键按下，key_flag非全0      any(key_flag)返回True
-    #     action = bot_action
-    # if bot_action_Q[human_action] <= bot_action_Q[bot_action]*alpha:
-    #     action = bot_action
-    # else:
-    #     action = human_action
-    #     human_action_taken_num+=1
 
+    if not any(key_flag):
+        # ? 如果没有按键按下，key_flag全0，any(key_flag)返回false
+        # ? 有按键按下，key_flag非全0      any(key_flag)返回True
+        action = disc_to_cont(bot_action)
     if bot_action_Q[encode_action] <= bot_action_Q[bot_action]*alpha:
         action = disc_to_cont(bot_action)
     else:

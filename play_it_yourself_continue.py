@@ -20,7 +20,7 @@ ENV_ID = 'LunarLanderContinuous_SC-v2'
 
 
 key_flag = [0,0,0,0]   # ? 用于储存上下左右是否被按下，按下为1，抬起为0
-inverse_control = 1    # ? 0 inverse 1 normal   i use 0
+inverse_control = 0    # ? 0 inverse 1 normal   i use 0
 
 def key_press(key, mod):
   """

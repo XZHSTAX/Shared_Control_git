@@ -19,7 +19,7 @@ ENV_ID = 'LunarLander_SC-v2'
 
 #Done 添加当用户不操作，就让机器接管；注意，是用户不操作，即不按键
 key_flag = [0,0,0,0]   # ? 用于储存上下左右是否被按下，按下为1，抬起为0
-inverse_control = 1    # ? 0 inverse 1 normal
+inverse_control = 0    # ? 0 inverse 1 normal
 
 def key_press(key, mod):
     global human_agent_action
@@ -127,7 +127,7 @@ while 1:
         # ? 如果没有按键按下，key_flag全0，any(key_flag)返回false
         # ? 有按键按下，key_flag非全0      any(key_flag)返回True
         action = bot_action
-    if bot_action_Q[human_action] <= bot_action_Q[bot_action]*alpha:
+    elif bot_action_Q[human_action] <= bot_action_Q[bot_action]*alpha:
         action = bot_action
     else:
         action = human_action
