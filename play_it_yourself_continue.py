@@ -94,7 +94,7 @@ def human_pilot_policy(obs):
 
 
 # ! 可调参数--------------------------------------
-test_episodes = 5  # ? 测试次数
+test_episodes = 20  # ? 测试次数
 pilot_name = 'xzh'  # ? 驾驶员名称
 
 env = gym.make(ENV_ID)

@@ -112,7 +112,7 @@ model.eval()
 
 # ! 可调参数--------------------------------------
 test_episodes = 10  # ? 测试次数
-pilot_name = '测试'  # ? 驾驶员名称
+pilot_name = '测试-ez'  # ? 驾驶员名称
 alpha = 0.96        # ? 相似系数
 load_model_path = 'model/A3_plus2.5' # ? 加载模型位置
 if os.path.exists(load_model_path):
